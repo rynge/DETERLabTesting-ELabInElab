@@ -1,0 +1,84 @@
+#!/bin/bash
+
+set -e
+
+# Arguments. Example: ./run-test mrynge pegasus
+DETER_USER=$1
+DETER_PROJECT=$2
+
+TOP_DIR=`pwd`
+DETER_USERS_HOST="users.isi.deterlab.net"
+DETER_SSH_OPTS="-o StrictHostKeyChecking=no"
+
+DETER_SSH="ssh -A $DETER_USER@$DETER_USERS_HOST"
+
+# fill in the templates
+for TEMPLATE in `find . -name \*.template | sort`; do
+    TARGET=`echo "$TEMPLATE" | sed 's/\.template$//'`
+    cp -a $TEMPLATE $TARGET
+    echo " ... setting up $TARGET from the template $TEMPLATE"
+    perl -p -i -e "s/\\[\\[DETER_USER\\]\\]/$DETER_USER/g" $TARGET
+done
+
+# create all the agent tarballs
+for TID in `cd tests && ls`; do
+    cd $TOP_DIR/tests/$TID/agents
+    for AGENT in `ls | grep -v tar.gz`; do
+        (cd $AGENT && \
+         cp -r ../../../../common/DeterLabTesting . && \
+         tar czf ../$AGENT.tar.gz . && \
+         rm -rf DeterLabTesting)
+    done
+done
+
+# copy over files 
+cd $TOP_DIR
+#mkdir -p reports/$TEST
+#rm -f reports/$TEST/*.xml >/dev/null 2>&1 || true
+$DETER_SSH "rm -rf DETERLabTesting-ELabInElab ; mkdir DETERLabTesting-ELabInElab"
+scp -q -r . $DETER_USER@$DETER_USERS_HOST:DETERLabTesting-ELabInElab/
+
+# fix permissions
+#$DETER_SSH "chmod 777 DETERLabTesting-ELabInElab/reports/$TEST"
+
+echo
+echo
+echo "#################################################"
+echo "## Setting up the elab in elab"
+echo
+
+# kill old setup
+$DETER_SSH ". .profile && endexp -N -w $DETER_PROJECT test-elabinelab >/dev/null 2>&1" || true
+
+$DETER_SSH ". .profile && cd DETERLabTesting-ELabInElab && startexp -N -w -i -a 600 -l 540 -E 'DeterLab - elabinelab - validation testing' -p $DETER_PROJECT -e test-elabinelab elabinelab.ns"
+
+# do we need to wait for things to settle down?
+echo "Waiting for elabinelab to be fully set up..."
+sleep 30m
+
+# TODO: validate if the elabinelab came up correctly
+VALIDATED=1
+if ! $DETER_SSH ". .profile && ssh $DETER_SSH_OPTS myboss.test-elabinelab.$DETER_PROJECT whoami" >/dev/null; then
+    VALIDATED=0
+fi
+if ! $DETER_SSH ". .profile && ssh $DETER_SSH_OPTS myops.test-elabinelab.$DETER_PROJECT whoami" >/dev/null; then
+    VALIDATED=0
+fi
+echo "ElabInElab setup validation: $VALIDATED"
+
+# add our sshkey to the inner boss root user
+$DETER_SSH ". .profile && ssh $DETER_SSH_OPTS myboss.test-elabinelab.$DETER_PROJECT 'cat ~/.ssh/authorized_keys | sudo dd of=/root/.ssh/authorized_keys'"
+
+# copy files and images we might need
+$DETER_SSH ". .profile && scp $DETER_SSH_OPTS .profile .cshrc myops.test-elabinelab.pegasus:"
+$DETER_SSH ". .profile && ssh $DETER_SSH_OPTS boss 'scp $DETER_SSH_OPTS /usr/testbed/images/Ubuntu14* root@myboss.test-elabinelab.pegasus:/usr/testbed/images/'"
+
+# we need to sched_reload the nodes
+$DETER_SSH ". .profile && ssh $DETER_SSH_OPTS myboss.test-elabinelab.$DETER_PROJECT 'wap sched_reload -c pc'"
+echo "Wait for nodes to be reloaded..."
+sleep 15m
+
+echo
+echo "All done! Time to run some experiments."
+echo
+

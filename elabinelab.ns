@@ -1,0 +1,23 @@
+
+source tb_compat.tcl
+set ns [new Simulator]
+
+tb-elab-in-elab 1
+tb-elabinelab-singlenet
+
+set os FBSD10-ENE
+#set hw bpc2133
+set hw MicroCloud
+
+namespace eval TBCOMPAT {
+
+    set elabinelab_maxpcs 5
+    set elabinelab_hardware("boss") $hw
+    set elabinelab_nodeos("boss") $os
+    set elabinelab_hardware("ops") $hw
+    set elabinelab_nodeos("ops") $os
+
+}
+
+$ns run
+
