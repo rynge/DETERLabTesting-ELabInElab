@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -v
 
 # Arguments. Example: ./run-test mrynge pegasus
 DETER_USER=$1
