@@ -2,7 +2,7 @@ node {
 
    // Mark the code checkout 'stage'....
    stage 'Checkout'
-   git url: 'https://github.com/rynge/DETERLabTesting.git'
+   git url: 'https://github.com/rynge/DETERLabTesting-ELabInElab.git'
    sh 'git clean -fdx'
    
    // Elab-in-Elab setup stage

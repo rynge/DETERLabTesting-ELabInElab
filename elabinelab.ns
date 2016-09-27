@@ -6,12 +6,11 @@ tb-elab-in-elab 1
 tb-elabinelab-singlenet
 
 set os FBSD10-ENE
-#set hw bpc2133
-set hw MicroCloud
+set hw bpc2133
 
 namespace eval TBCOMPAT {
 
-    set elabinelab_maxpcs 5
+    set elabinelab_maxpcs 10
     set elabinelab_hardware("boss") $hw
     set elabinelab_nodeos("boss") $os
     set elabinelab_hardware("ops") $hw
