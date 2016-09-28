@@ -58,7 +58,8 @@ echo
 # kill old projects
 $DETER_SSH "ssh $DETER_SSH_OPTS myops.test-elabinelab.$DETER_PROJECT '. .profile && endexp -N -w $DETER_PROJECT test-$TEST >/dev/null 2>&1'" || true
 
-echo "Deploying topology..."
+echo
+echo "Deploying topology using startexp..."
 $DETER_SSH "ssh $DETER_SSH_OPTS myops.test-elabinelab.$DETER_PROJECT '. .profile && cd DETERLabTesting-ELabInElab/tests/$TEST && startexp -N -w -i -a 120 -l 30 -E DeterLab_validation_test_$TEST -p $DETER_PROJECT -e test-$TEST topology.ns'"
 
 # do we need to wait for things to settle down?
